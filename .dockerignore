@@ -1,0 +1,77 @@
+# Version control
+.git
+.gitignore
+
+# IDE and editor files
+.vscode
+.vs
+.idea
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build artifacts
+build/
+dist/
+*.o
+*.so
+*.a
+*.dll
+*.exe
+*.out
+moc_*.cpp
+*.pro
+.qmake.stash
+.qmake.cache
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Documentation
+docs/
+*.md
+README*
+
+# Test files
+test/
+tests/
+*_test.cpp
+*_test.c
+
+# Development container files
+.devcontainer/
+devcontainer.json
+
+# Node modules (if any)
+node_modules/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Data directories that should be mounted as volumes
+data/

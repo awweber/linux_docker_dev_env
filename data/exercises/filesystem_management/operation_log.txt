@@ -1,0 +1,46 @@
+Wed Jul  2 13:13:55 2025
+: Verzeichnis erstellt
+Wed Jul  2 13:13:55 2025
+: Datei erstellt: testdir/file1.txt (Dateigröße: 39 Bytes)
+Wed Jul  2 13:13:55 2025
+: Datei erstellt: testdir/file2.txt (Dateigröße: 39 Bytes)
+Wed Jul  2 13:13:55 2025
+: Datei erstellt: testdir/file3.txt (Dateigröße: 39 Bytes)
+Wed Jul  2 13:13:55 2025
+: Dateien aufgelistet
+Wed Jul  2 13:13:55 2025
+: Datei gelöscht: testdir/file3.txt (Dateigröße: 39 Bytes)
+Wed Jul  2 13:13:55 2025
+: Datei gelöscht: testdir/file2.txt (Dateigröße: 39 Bytes)
+Wed Jul  2 13:13:55 2025
+: Datei gelöscht: testdir/file1.txt (Dateigröße: 39 Bytes)
+Wed Jul  2 13:13:55 2025
+: Verzeichnis gelöscht
+Wed Jul  2 13:14:18 2025
+: Verzeichnis erstellt
+Wed Jul  2 13:14:18 2025
+: Dateien erstellt
+Wed Jul  2 13:14:18 2025
+: Dateien aufgelistet
+Wed Jul  2 13:14:18 2025
+: Dateien gelöscht
+Wed Jul  2 13:14:18 2025
+: Verzeichnis gelöscht
+Wed Jul  2 13:14:18 2025
+: Verzeichnis erstellt
+Wed Jul  2 13:14:18 2025
+: Datei erstellt: testdir/file1.txt (Dateigröße: 39 Bytes)
+Wed Jul  2 13:14:18 2025
+: Datei erstellt: testdir/file2.txt (Dateigröße: 39 Bytes)
+Wed Jul  2 13:14:18 2025
+: Datei erstellt: testdir/file3.txt (Dateigröße: 39 Bytes)
+Wed Jul  2 13:14:18 2025
+: Dateien aufgelistet
+Wed Jul  2 13:14:18 2025
+: Datei gelöscht: testdir/file3.txt (Dateigröße: 39 Bytes)
+Wed Jul  2 13:14:18 2025
+: Datei gelöscht: testdir/file2.txt (Dateigröße: 39 Bytes)
+Wed Jul  2 13:14:18 2025
+: Datei gelöscht: testdir/file1.txt (Dateigröße: 39 Bytes)
+Wed Jul  2 13:14:18 2025
+: Verzeichnis gelöscht
