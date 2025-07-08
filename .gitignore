@@ -86,3 +86,13 @@ pip-log.txt
 # Node modules
 node_modules/
 
+# Archive files from exam3
+exam3_*.zip
+
+# Large image files (mount as volumes instead)
+*.img
+*.iso
+*.qcow2
+*.vmdk
+*.vdi
+
