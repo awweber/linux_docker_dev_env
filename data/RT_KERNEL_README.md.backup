@@ -1,0 +1,278 @@
+# Linux Kernel 6.15.6 mit PREEMPT_RT für Raspberry Pi 5 aarch64
+
+## Übersicht
+
+Dieses Projekt ermöglicht es, einen aktuellen Linux Kernel 6.15.6 mit PREEMPT_RT-Unterstützung für Raspberry Pi 5 aarch64 zu kompilieren und zu testen. Der Kernel wird im Docker-Container `linux-dev-env` erstellt und kann sowohl in QEMU als auch auf echter Hardware verwendet werden.
+
+## Voraussetzungen
+
+- Docker-Container `linux-dev-env` (siehe Hauptverzeichnis)
+- Mindestens 4GB freier Speicherplatz
+- Stabile Internetverbindung für Downloads
+
+## Quick Start
+
+### 1. Container starten
+```bash
+# Im Hauptverzeichnis
+./start_container.sh
+```
+
+### 2. Kernel kompilieren
+```bash
+# Im Container
+cd /home/dev/data
+./build_rt_kernel.sh
+```
+
+### 3. Kernel testen
+```bash
+# RT-Kernel in QEMU starten
+./start_qemu_rt.sh
+
+# RT-Features testen
+./test_rt_features.sh
+```
+
+## Detaillierte Anleitung
+
+### Schritt 1: Kernel-Build vorbereiten
+
+Der Build-Prozess lädt automatisch:
+- Linux Kernel 6.15.6 Quellcode
+- PREEMPT_RT Patch 6.15.6-rt5
+- Konfiguriert den Kernel für Raspberry Pi 5 aarch64
+
+### Schritt 2: Makefile verwenden (Alternative)
+
+```bash
+# Alle verfügbaren Targets anzeigen
+make help
+
+# Status prüfen
+make status
+
+# Kompletter Build
+make all
+
+# Nur konfigurieren
+make configure
+
+# Interaktive Konfiguration
+make menuconfig
+
+# Nur kompilieren
+make compile
+
+# Aufräumen
+make clean
+```
+
+### Schritt 3: Kernel-Konfiguration
+
+Der Kernel wird automatisch mit folgenden RT-Features konfiguriert:
+
+#### PREEMPT_RT Kernoptionen:
+- `CONFIG_PREEMPT_RT=y` - Vollständige RT-Preemption
+- `CONFIG_PREEMPT_RT_FULL=y` - Vollständiges RT-Modell
+- `CONFIG_HIGH_RES_TIMERS=y` - Hochauflösende Timer
+- `CONFIG_NO_HZ_FULL=y` - Tickless System
+- `CONFIG_RCU_BOOST=y` - RCU Priority Boosting
+- `CONFIG_RT_MUTEXES=y` - RT-Mutexes
+
+#### Raspberry Pi 5 spezifische Optionen:
+- `CONFIG_ARCH_BCM2835=y` - BCM2835/2712 Architektur
+- `CONFIG_GPIOLIB=y` - GPIO-Unterstützung
+- `CONFIG_I2C=y` - I2C-Bus-Unterstützung
+- `CONFIG_SPI=y` - SPI-Bus-Unterstützung
+
+#### Debug und Tracing:
+- `CONFIG_FTRACE=y` - Function Tracer
+- `CONFIG_PREEMPT_TRACER=y` - Preemption Tracer
+- `CONFIG_IRQSOFF_TRACER=y` - IRQ-Off Tracer
+- `CONFIG_DEBUG_PREEMPT=y` - Preemption Debugging
+
+### Schritt 4: Kompilierung
+
+```bash
+# Automatisch (empfohlen)
+./build_rt_kernel.sh
+
+# Manuell
+cd /home/dev/data/kernel_build/linux-6.15.6
+export ARCH=arm64
+export CROSS_COMPILE=aarch64-linux-gnu-
+make -j$(nproc) Image modules dtbs
+```
+
+### Schritt 5: Installation
+
+Nach dem Build finden Sie die Dateien unter:
+```
+/home/dev/data/kernel_build/install/
+├── boot/
+│   ├── Image                    # Kernel-Image
+│   └── *.dtb                   # Device Tree Blobs
+└── lib/
+    └── modules/
+        └── 6.15.6-rt/         # Kernel-Module
+```
+
+## QEMU-Tests
+
+### Basic Test
+```bash
+./start_qemu_rt.sh
+```
+
+### RT-Features testen
+```bash
+# Im QEMU-System
+./test_rt_features.sh
+```
+
+### Erweiterte RT-Tests
+```bash
+# Latency-Test (falls cyclictest verfügbar)
+cyclictest -t1 -p 80 -n -i 10000 -l 10000
+
+# Hardware-Latency-Test
+hwlatdetect --duration=30
+
+# RT-Evaluation
+rteval --duration=300
+```
+
+## Hardware-Installation (Raspberry Pi 5)
+
+### 1. SD-Karte vorbereiten
+```bash
+# Boot-Partition mounten
+sudo mount /dev/sdX1 /mnt/boot
+
+# Kernel kopieren
+sudo cp /home/dev/data/kernel_build/install/boot/Image /mnt/boot/kernel_2712.img
+sudo cp /home/dev/data/kernel_build/install/boot/bcm2712-rpi-5-b.dtb /mnt/boot/
+
+# Rootfs-Partition mounten
+sudo mount /dev/sdX2 /mnt/rootfs
+
+# Module installieren
+sudo cp -r /home/dev/data/kernel_build/install/lib/modules/* /mnt/rootfs/lib/modules/
+```
+
+### 2. Boot-Konfiguration
+```bash
+# /mnt/boot/config.txt bearbeiten
+kernel=kernel_2712.img
+device_tree=bcm2712-rpi-5-b.dtb
+
+# RT-spezifische Kernel-Parameter
+# /mnt/boot/cmdline.txt
+dwc_otg.lpm_enable=0 console=serial0,115200 console=tty1 root=PARTUUID=... rootfstype=ext4 elevator=noop rootwait preempt=rt isolcpus=1,2,3 nohz_full=1,2,3
+```
+
+## Troubleshooting
+
+### Build-Probleme
+
+**Problem**: Patch kann nicht angewendet werden
+```bash
+# Lösung: Kernel-Tree bereinigen
+cd /home/dev/data/kernel_build/linux-6.15.6
+make distclean
+rm -f .rt_patch_applied
+```
+
+**Problem**: Cross-Compiler nicht gefunden
+```bash
+# Lösung: Prüfe Installation
+aarch64-linux-gnu-gcc --version
+```
+
+### QEMU-Probleme
+
+**Problem**: Kernel startet nicht
+```bash
+# Lösung: Prüfe Kernel-Image
+file /home/dev/data/kernel_build/install/boot/Image
+```
+
+**Problem**: RT-Features nicht verfügbar
+```bash
+# Lösung: Prüfe Kernel-Konfiguration
+grep CONFIG_PREEMPT_RT /home/dev/data/kernel_build/linux-6.15.6/.config
+```
+
+## Konfiguration anpassen
+
+### Interaktive Konfiguration
+```bash
+./configure_rt_kernel.sh
+```
+
+### Wichtige RT-Konfigurationsoptionen:
+
+#### Preemption Model
+- General setup → Preemption Model → Fully Preemptible Kernel (Real-Time)
+
+#### RCU Subsystem
+- General setup → RCU Subsystem → Make RCU boost kthreads real-time priority
+
+#### Timer Subsystem
+- General setup → Timers subsystem → High Resolution Timer Support
+- General setup → Timers subsystem → Old Idle dynticks config
+
+#### Kernel Hacking
+- Kernel hacking → Lock Debugging → RT Mutex debugging
+- Kernel hacking → Tracers → Preemption-off Latency Tracer
+
+## Performance-Optimierung
+
+### CPU-Isolation
+```bash
+# Kernel-Parameter
+isolcpus=1,2,3 nohz_full=1,2,3 rcu_nocbs=1,2,3
+```
+
+### RT-Scheduler-Tuning
+```bash
+# Runtime-Konfiguration
+echo 950000 > /proc/sys/kernel/sched_rt_runtime_us
+echo 1000000 > /proc/sys/kernel/sched_rt_period_us
+```
+
+### Memory-Locking
+```bash
+# Für RT-Anwendungen
+mlockall(MCL_CURRENT | MCL_FUTURE)
+```
+
+## Verzeichnisstruktur
+
+```
+data/
+├── build_rt_kernel.sh          # Haupt-Build-Skript
+├── configure_rt_kernel.sh      # Konfigurationsskript
+├── start_qemu_rt.sh           # QEMU-Starter
+├── test_rt_features.sh        # RT-Test-Suite
+├── Makefile                   # Build-Automation
+├── downloads/                 # Downloads
+│   ├── linux-6.15.6.tar.xz
+│   └── patch-6.15.6-rt5.patch.xz
+└── kernel_build/              # Build-Verzeichnis
+    ├── linux-6.15.6/         # Kernel-Quellcode
+    └── install/               # Installationsverzeichnis
+        ├── boot/
+        └── lib/
+```
+
+## Weitere Ressourcen
+
+- [PREEMPT_RT Wiki](https://wiki.linuxfoundation.org/realtime/start)
+- [Raspberry Pi Kernel Building](https://www.raspberrypi.org/documentation/linux/kernel/building.md)
+- [RT-Tests Tools](https://wiki.linuxfoundation.org/realtime/documentation/howto/tools/rt-tests)
+
+## Lizenz
+
+Dieses Projekt folgt der GPL-2.0 Lizenz entsprechend dem Linux Kernel.

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Dieses Skript richtet die QEMU-Umgebung für ARM-Emulation ein und startet
 # ein Raspberry Pi OS Lite Image.
-cd /home/dev/data
+cd /home/dev/data || exit
 export QEMU_AUDIO_DRV=none
 
 # QEMU mit Init-Parameter starten
