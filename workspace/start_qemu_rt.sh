@@ -4,10 +4,10 @@
 
 set -e
 
-KERNEL_BUILD_DIR="/home/dev/data/kernel_build"
+KERNEL_BUILD_DIR="/home/developer/workspace/kernel_build"
 INSTALL_DIR="$KERNEL_BUILD_DIR/install"
 KERNEL_IMAGE="$INSTALL_DIR/boot/Image"
-ROOTFS_IMAGE="/home/dev/data/images/raspios-lite.img"
+ROOTFS_IMAGE="/home/developer/workspace/images/raspios-lite.img"
 
 # Überprüfe ob Kernel vorhanden ist
 if [ ! -f "$KERNEL_IMAGE" ]; then

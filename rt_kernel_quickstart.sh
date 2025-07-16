@@ -30,31 +30,31 @@ read -p "Wählen Sie eine Option (1-6): " choice
 case $choice in
     1)
         echo "Starte interaktiven Container..."
-        docker run -it --rm -v "$(pwd)/data:/home/dev/data" linux-dev-env /bin/bash
+        docker run -it --rm -v "$(pwd)/workspace:/home/developer/workspace" linux-dev-env /bin/bash
         ;;
     2)
         echo "Kompiliere RT-Kernel..."
-        docker run -it --rm -v "$(pwd)/data:/home/dev/data" linux-dev-env /bin/bash -c "cd /home/dev/data && ./build_rt_kernel.sh"
+        docker run -it --rm -v "$(pwd)/workspace:/home/developer/workspace" linux-dev-env /bin/bash -c "cd /home/developer/workspace && ./build_rt_kernel.sh"
         ;;
     3)
         echo "Teste RT-Kernel in QEMU..."
-        docker run -it --rm -v "$(pwd)/data:/home/dev/data" linux-dev-env /bin/bash -c "cd /home/dev/data && ./start_qemu_rt.sh"
+        docker run -it --rm -v "$(pwd)/workspace:/home/developer/workspace" linux-dev-env /bin/bash -c "cd /home/developer/workspace && ./start_qemu_rt.sh"
         ;;
     4)
         echo "Prüfe Build-Status..."
-        docker run -it --rm -v "$(pwd)/data:/home/dev/data" linux-dev-env /bin/bash -c "cd /home/dev/data && make status"
+        docker run -it --rm -v "$(pwd)/workspace:/home/developer/workspace" linux-dev-env /bin/bash -c "cd /home/developer/workspace && make status"
         ;;
     5)
         echo "Zeige Dokumentation..."
         if command -v less >/dev/null 2>&1; then
-            less data/RT_KERNEL_README.md
+            less README.md
         else
-            cat data/RT_KERNEL_README.md
+            cat README.md
         fi
         ;;
     6)
         echo "Mache alle Skripte ausführbar..."
-        chmod +x data/*.sh
+        chmod +x workspace/*.sh
         echo "Skripte sind jetzt ausführbar."
         ;;
     *)

@@ -67,10 +67,10 @@ Thumbs.db
 
 
 # Build directories
-build/
-dist/
-bin/
-obj/
+workspace/kernel_build/
+workspace/downloads/
+workspace/kernels/
+workspace/images/
 
 # Python cache
 __pycache__/

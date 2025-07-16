@@ -9,9 +9,9 @@ echo "Startzeit: $(date)"
 
 # Konfiguration
 KERNEL_VERSION="6.15.6"
-RT_PATCH_VERSION="6.15.6-rt5"
-WORK_DIR="/home/dev/data/kernel_build"
-DOWNLOADS_DIR="/home/dev/data/downloads"
+# Seit Linux 6.12 ist PREEMPT_RT im Mainline-Kernel integriert
+WORK_DIR="/home/developer/workspace/kernel_build"
+DOWNLOADS_DIR="/home/developer/workspace/downloads"
 KERNEL_DIR="$WORK_DIR/linux-$KERNEL_VERSION"
 INSTALL_DIR="$WORK_DIR/install"
 CROSS_COMPILE="aarch64-linux-gnu-"
@@ -32,15 +32,7 @@ else
     echo "Kernel-Archiv bereits vorhanden."
 fi
 
-echo "=== Schritt 2: PREEMPT_RT Patch herunterladen ==="
-if [ ! -f "$DOWNLOADS_DIR/patch-$RT_PATCH_VERSION.patch.xz" ]; then
-    echo "Lade PREEMPT_RT Patch $RT_PATCH_VERSION herunter..."
-    wget -P "$DOWNLOADS_DIR" "https://cdn.kernel.org/pub/linux/kernel/projects/rt/6.15/patch-$RT_PATCH_VERSION.patch.xz"
-else
-    echo "RT-Patch bereits vorhanden."
-fi
-
-echo "=== Schritt 3: Kernel-Quellcode extrahieren ==="
+echo "=== Schritt 2: Kernel-Quellcode extrahieren ==="
 if [ ! -d "$KERNEL_DIR" ]; then
     echo "Extrahiere Kernel-Quellcode..."
     tar -xf "$DOWNLOADS_DIR/linux-$KERNEL_VERSION.tar.xz" -C "$WORK_DIR"
@@ -48,18 +40,8 @@ else
     echo "Kernel-Quellcode bereits extrahiert."
 fi
 
-echo "=== Schritt 4: PREEMPT_RT Patch anwenden ==="
+echo "=== Schritt 3: Kernel-Konfiguration ==="
 cd "$KERNEL_DIR"
-if [ ! -f ".rt_patch_applied" ]; then
-    echo "Wende PREEMPT_RT Patch an..."
-    xzcat "$DOWNLOADS_DIR/patch-$RT_PATCH_VERSION.patch.xz" | patch -p1
-    touch .rt_patch_applied
-    echo "PREEMPT_RT Patch erfolgreich angewendet."
-else
-    echo "PREEMPT_RT Patch bereits angewendet."
-fi
-
-echo "=== Schritt 5: Kernel-Konfiguration ==="
 export ARCH="$ARCH"
 export CROSS_COMPILE="$CROSS_COMPILE"
 
@@ -80,26 +62,45 @@ if [ ! -f ".config" ]; then
     scripts/config --enable CONFIG_BCM2835_POWER
     scripts/config --enable CONFIG_BCM2835_THERMAL
     
-    # PREEMPT_RT Konfiguration
-    echo "Aktiviere PREEMPT_RT Optionen..."
-    scripts/config --enable CONFIG_PREEMPT_RT
-    scripts/config --enable CONFIG_PREEMPT_RT_FULL
-    scripts/config --disable CONFIG_PREEMPT_VOLUNTARY
-    scripts/config --disable CONFIG_PREEMPT
+    # PREEMPT_RT Konfiguration (seit Linux 6.12 im Mainline-Kernel)
+    echo "Aktiviere PREEMPT_RT Optionen (Mainline seit 6.12)..."
+    
+    # Prüfe zunächst, ob CONFIG_PREEMPT_RT verfügbar ist
+    if scripts/config --enable CONFIG_PREEMPT_RT 2>/dev/null; then
+        echo "  ✓ CONFIG_PREEMPT_RT verfügbar - aktiviere RT-Modus"
+        
+        # Setze Preemption Model auf RT
+        scripts/config --disable CONFIG_PREEMPT_NONE
+        scripts/config --disable CONFIG_PREEMPT_VOLUNTARY
+        scripts/config --disable CONFIG_PREEMPT
+        scripts/config --enable CONFIG_PREEMPT_RT
+    else
+        echo "  ⚠ CONFIG_PREEMPT_RT nicht verfügbar - verwende besten verfügbaren Preemption-Modus"
+        
+        # Fallback: Verwende PREEMPT für bessere Responsivität
+        scripts/config --disable CONFIG_PREEMPT_NONE
+        scripts/config --disable CONFIG_PREEMPT_VOLUNTARY
+        scripts/config --enable CONFIG_PREEMPT
+    fi
+    
+    # RT-Subsystem-Konfiguration (diese sind meist verfügbar)
     scripts/config --enable CONFIG_PREEMPT_RCU
     scripts/config --enable CONFIG_RCU_BOOST
     scripts/config --enable CONFIG_HIGH_RES_TIMERS
     scripts/config --enable CONFIG_NO_HZ_FULL
+    scripts/config --enable CONFIG_NO_HZ_IDLE
     scripts/config --enable CONFIG_HRTIMER_STACKTRACE
     
     # Weitere Real-Time relevante Optionen
     scripts/config --enable CONFIG_RT_MUTEXES
     scripts/config --enable CONFIG_GENERIC_LOCKBREAK
-    scripts/config --enable CONFIG_PROVE_LOCKING
-    scripts/config --enable CONFIG_LOCK_STAT
-    scripts/config --enable CONFIG_DEBUG_ATOMIC_SLEEP
+    
+    # RT-Debugging (optional, aber hilfreich)
     scripts/config --enable CONFIG_DEBUG_PREEMPT
     scripts/config --enable CONFIG_DEBUG_RT_MUTEXES
+    scripts/config --enable CONFIG_DEBUG_ATOMIC_SLEEP
+    scripts/config --enable CONFIG_PROVE_LOCKING
+    scripts/config --enable CONFIG_LOCK_STAT
     
     # GPIO und Hardware-Support
     scripts/config --enable CONFIG_GPIOLIB
@@ -135,19 +136,29 @@ if [ ! -f ".config" ]; then
     make olddefconfig
     
     echo "Konfiguration abgeschlossen."
+    
+    # Überprüfe RT-Konfiguration
+    echo "Überprüfe RT-Konfiguration..."
+    if grep -q "CONFIG_PREEMPT_RT=y" .config; then
+        echo "✓ CONFIG_PREEMPT_RT ist aktiviert"
+    else
+        echo "⚠ CONFIG_PREEMPT_RT ist nicht aktiviert - prüfe verfügbare Optionen"
+        echo "Verfügbare Preemption-Optionen:"
+        grep "CONFIG_PREEMPT" .config | head -10
+    fi
 else
     echo "Konfiguration bereits vorhanden."
 fi
 
-echo "=== Schritt 6: Kernel kompilieren ==="
+echo "=== Schritt 4: Kernel kompilieren ==="
 echo "Kompiliere Kernel mit $JOBS parallelen Jobs..."
 make -j$JOBS Image modules dtbs
 
-echo "=== Schritt 7: Module installieren ==="
+echo "=== Schritt 5: Module installieren ==="
 echo "Installiere Module nach $INSTALL_DIR..."
 make INSTALL_MOD_PATH="$INSTALL_DIR" modules_install
 
-echo "=== Schritt 8: Kernel und Device Tree kopieren ==="
+echo "=== Schritt 6: Kernel und Device Tree kopieren ==="
 mkdir -p "$INSTALL_DIR/boot"
 cp arch/arm64/boot/Image "$INSTALL_DIR/boot/"
 cp arch/arm64/boot/dts/broadcom/bcm2712-rpi-5-b.dtb "$INSTALL_DIR/boot/" 2>/dev/null || echo "Warnung: bcm2712-rpi-5-b.dtb nicht gefunden"
@@ -155,24 +166,42 @@ cp arch/arm64/boot/dts/broadcom/bcm2712-rpi-5-b.dtb "$INSTALL_DIR/boot/" 2>/dev/
 # Kopiere alle verfügbaren BCM2712 DTBs
 find arch/arm64/boot/dts/broadcom/ -name "bcm2712*.dtb" -exec cp {} "$INSTALL_DIR/boot/" \; 2>/dev/null || true
 
-echo "=== Schritt 9: Kernel-Informationen ==="
+echo "=== Schritt 7: Kernel-Informationen ==="
 echo "Kernel-Version: $(make kernelversion)"
 echo "Kompiliert für: $ARCH mit $CROSS_COMPILE"
-echo "PREEMPT_RT: $(grep CONFIG_PREEMPT_RT .config || echo 'Nicht gefunden')"
+
+# Erweiterte RT-Konfigurationsprüfung
+echo "RT-Konfiguration:"
+if grep -q "CONFIG_PREEMPT_RT=y" .config; then
+    echo "  ✓ CONFIG_PREEMPT_RT=y (aktiviert)"
+else
+    echo "  ✗ CONFIG_PREEMPT_RT nicht aktiviert"
+    echo "  Verfügbare Preemption-Modi:"
+    grep "CONFIG_PREEMPT.*=y" .config | sed 's/^/    /'
+fi
+
+# Weitere wichtige RT-Optionen prüfen
+echo "Weitere RT-Features:"
+grep -q "CONFIG_HIGH_RES_TIMERS=y" .config && echo "  ✓ High-Resolution Timers" || echo "  ✗ High-Resolution Timers fehlt"
+grep -q "CONFIG_NO_HZ_FULL=y" .config && echo "  ✓ NO_HZ_FULL (Tickless)" || echo "  ✗ NO_HZ_FULL fehlt"
+grep -q "CONFIG_RT_MUTEXES=y" .config && echo "  ✓ RT-Mutexes" || echo "  ✗ RT-Mutexes fehlt"
+grep -q "CONFIG_RCU_BOOST=y" .config && echo "  ✓ RCU Boost" || echo "  ✗ RCU Boost fehlt"
+
 echo "Installationsverzeichnis: $INSTALL_DIR"
 
-echo "=== Schritt 10: Zusammenfassung der Dateien ==="
+echo "=== Schritt 8: Zusammenfassung der Dateien ==="
 echo "Kernel-Image: $INSTALL_DIR/boot/Image"
-echo "Module: $INSTALL_DIR/lib/modules/$KERNEL_VERSION-rt"
+echo "Module: $INSTALL_DIR/lib/modules/$KERNEL_VERSION"
 echo "Device Trees:"
 ls -la "$INSTALL_DIR/boot/"*.dtb 2>/dev/null || echo "Keine DTB-Dateien gefunden"
 
-echo "=== Schritt 11: QEMU-Startup-Skript erstellen ==="
+echo "=== Schritt 9: QEMU-Startup-Skript erstellen ==="
 cat > "$INSTALL_DIR/start_qemu_rt.sh" << 'EOF'
 #!/bin/bash
 # Startet QEMU mit dem kompilierten RT-Kernel für Raspberry Pi 5 Emulation
+# PREEMPT_RT ist seit Linux 6.12 im Mainline-Kernel integriert
 
-cd /home/dev/data/kernel_build/install
+cd /home/developer/workspace/kernel_build/install
 
 export QEMU_AUDIO_DRV=none
 
@@ -203,7 +232,7 @@ echo "2. Für echte Hardware: Kopiere $INSTALL_DIR/boot/* auf die Boot-Partition
 echo "3. Für echte Hardware: Kopiere $INSTALL_DIR/lib/modules/* in das Rootfs"
 echo ""
 echo "Kernel-Features:"
-echo "- PREEMPT_RT aktiviert"
+echo "- PREEMPT_RT aktiviert (Mainline seit 6.12)"
 echo "- ARM64 für Raspberry Pi 5"
 echo "- Debug-Optionen aktiviert"
 echo "- GPIO, I2C, SPI Support"

@@ -74,31 +74,31 @@ ENV LANG=de_DE.UTF-8 \
 ENV QEMU_AUDIO_DRV=none
 
 # Create development user
-RUN useradd -m -s /bin/bash dev && \
-    echo 'dev ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+RUN useradd -m -s /bin/bash developer && \
+    echo 'developer ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 # Configure development environment
-RUN echo 'echo "GCC Version:" && gcc --version' >> /home/dev/.bashrc && \
-    echo 'echo "G++ Version:" && g++ --version' >> /home/dev/.bashrc && \
-    echo 'echo "Clang Version:" && clang --version' >> /home/dev/.bashrc && \
-    echo 'echo "LLD Version:" && lld --version' >> /home/dev/.bashrc && \
-    echo 'echo "LLVM Version:" && llvm-config --version' >> /home/dev/.bashrc && \
-    echo 'echo "Python Version:" && python3 --version' >> /home/dev/.bashrc && \
-    echo 'echo "CMake Version:" && cmake --version' >> /home/dev/.bashrc && \
-    echo 'echo "GDB Version:" && gdb --version' >> /home/dev/.bashrc && \
-    echo 'echo "QEMU Version:" && qemu-system-arm --version' >> /home/dev/.bashrc
+RUN echo 'echo "GCC Version:" && gcc --version' >> /home/developer/.bashrc && \
+    echo 'echo "G++ Version:" && g++ --version' >> /home/developer/.bashrc && \
+    echo 'echo "Clang Version:" && clang --version' >> /home/developer/.bashrc && \
+    echo 'echo "LLD Version:" && lld --version' >> /home/developer/.bashrc && \
+    echo 'echo "LLVM Version:" && llvm-config --version' >> /home/developer/.bashrc && \
+    echo 'echo "Python Version:" && python3 --version' >> /home/developer/.bashrc && \
+    echo 'echo "CMake Version:" && cmake --version' >> /home/developer/.bashrc && \
+    echo 'echo "GDB Version:" && gdb --version' >> /home/developer/.bashrc && \
+    echo 'echo "QEMU Version:" && qemu-system-arm --version' >> /home/developer/.bashrc
 
 # Set working directory
-WORKDIR /home/dev
+WORKDIR /home/developer/workspace
 
 # Switch to development user
-USER dev
+USER developer
 
 # Set default shell
 SHELL ["/bin/bash", "-c"]
 
-# Define persistent data volume
-VOLUME ["/home/dev/data"]
+# Define persistent workspace volume
+VOLUME ["/home/developer/workspace"]
 
 # Default command
 CMD ["/bin/bash"]

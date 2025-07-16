@@ -139,19 +139,19 @@ docker run -it --rm linux-dev-env
 #### Container with Persistent Data
 
 ```bash
-docker run -it --rm -v $(pwd)/data:/home/dev/data linux-dev-env
+docker run -it --rm -v $(pwd)/workspace:/home/developer/workspace linux-dev-env
 ```
 
 #### Container with Privileged Access (for QEMU)
 
 ```bash
-docker run -it --rm --privileged -v $(pwd)/data:/home/dev/data linux-dev-env
+docker run -it --rm --privileged -v $(pwd)/workspace:/home/developer/workspace linux-dev-env
 ```
 
 #### Container with Network Access
 
 ```bash
-docker run -it --rm --privileged --network host -v $(pwd)/data:/home/dev/data linux-dev-env
+docker run -it --rm --privileged --network host -v $(pwd)/workspace:/home/developer/workspace linux-dev-env
 ```
 
 ## RT-Kernel Development
@@ -171,7 +171,7 @@ This section covers building and testing a Real-Time Linux Kernel for Raspberry 
 ./start_container.sh
 
 # 2. Build RT-Kernel
-cd /home/dev/data
+cd /home/developer/workspace
 ./build_rt_kernel.sh
 
 # 3. Test in QEMU
@@ -186,9 +186,9 @@ cd /home/dev/data
 The RT-Kernel build system provides:
 
 **🔧 Automated Build Process:**
-- Downloads Linux Kernel 6.15.6 and PREEMPT_RT patch 6.15.6-rt5
+- Downloads Linux Kernel 6.15.6 (PREEMPT_RT integrated since 6.12)
 - Cross-compiles for Raspberry Pi 5 aarch64 (BCM2712)
-- Configures RT-specific kernel options
+- Configures RT-specific kernel options automatically
 - Creates bootable kernel image and modules
 
 **⚡ PREEMPT_RT Configuration:**
@@ -222,6 +222,11 @@ The environment includes several specialized scripts:
 # RT-features test suite
 ./test_rt_features.sh
 
+# Diagnostic tools
+./diagnose_rt_config.sh      # Analyze RT configuration
+./check_rt_availability.sh   # Check RT availability
+./test_kernel_configs.sh     # Test different kernel configs
+
 # Build automation with Makefile
 make help          # Show all available targets
 make all           # Complete build process
@@ -240,8 +245,7 @@ data/
 ├── Makefile                   # Build automation
 ├── rt_kernel_quickstart.sh    # Quick start script
 ├── downloads/                 # Downloaded files
-│   ├── linux-6.15.6.tar.xz
-│   └── patch-6.15.6-rt5.patch.xz
+│   └── linux-6.15.6.tar.xz   # Kernel source (RT integrated)
 └── kernel_build/              # Build directory
     ├── linux-6.15.6/         # Kernel source
     └── install/               # Installation files
@@ -285,11 +289,11 @@ sudo mount /dev/sdX1 /mnt/boot    # Boot partition
 sudo mount /dev/sdX2 /mnt/rootfs  # Root filesystem
 
 # Copy kernel and device trees
-sudo cp /home/dev/data/kernel_build/install/boot/Image /mnt/boot/kernel_2712.img
-sudo cp /home/dev/data/kernel_build/install/boot/bcm2712-rpi-5-b.dtb /mnt/boot/
+sudo cp /home/developer/workspace/kernel_build/install/boot/Image /mnt/boot/kernel_2712.img
+sudo cp /home/developer/workspace/kernel_build/install/boot/bcm2712-rpi-5-b.dtb /mnt/boot/
 
 # Install modules
-sudo cp -r /home/dev/data/kernel_build/install/lib/modules/* /mnt/rootfs/lib/modules/
+sudo cp -r /home/developer/workspace/kernel_build/install/lib/modules/* /mnt/rootfs/lib/modules/
 ```
 
 **Boot Configuration:**
@@ -334,13 +338,13 @@ make distclean
 aarch64-linux-gnu-gcc --version
 
 # Verify patch application
-grep CONFIG_PREEMPT_RT /home/dev/data/kernel_build/linux-6.15.6/.config
+grep CONFIG_PREEMPT_RT /home/developer/workspace/kernel_build/linux-6.15.6/.config
 ```
 
 **QEMU Issues:**
 ```bash
 # Check kernel image
-file /home/dev/data/kernel_build/install/boot/Image
+file /home/developer/workspace/kernel_build/install/boot/Image
 
 # Verify RT-features
 cat /sys/kernel/realtime  # Should show "1"
@@ -518,8 +522,7 @@ dev_env/
 │   ├── test_rt_features.sh     # RT-features test suite
 │   ├── Makefile                # RT-kernel build automation
 │   ├── downloads/              # Downloaded files
-│   │   ├── linux-6.15.6.tar.xz        # Linux kernel source
-│   │   └── patch-6.15.6-rt5.patch.xz  # PREEMPT_RT patch
+│   │   └── linux-6.15.6.tar.xz        # Linux kernel source (RT integrated)
 │   ├── kernel_build/           # RT-kernel build directory
 │   │   ├── linux-6.15.6/      # Kernel source tree
 │   │   └── install/            # Compiled kernel & modules
@@ -574,17 +577,17 @@ docker run -it --rm linux-dev-env
 #### Container with Volume Mounting
 
 ```bash
-docker run -it --rm -v $(pwd)/data:/home/dev/data linux-dev-env
+docker run -it --rm -v $(pwd)/workspace:/home/developer/workspace linux-dev-env
 ```
-- `-v $(pwd)/data:/home/dev/data`: Volume mount
-  - `$(pwd)/data`: Source directory on host (current directory + /data)
-  - `:/home/dev/data`: Target directory inside container
-  - This makes the host's data folder accessible inside the container
+- `-v $(pwd)/workspace:/home/developer/workspace`: Volume mount
+  - `$(pwd)/workspace`: Source directory on host (current directory + /workspace)
+  - `:/home/developer/workspace`: Target directory inside container
+  - This makes the host's workspace folder accessible inside the container
 
 #### Container with Privileged Access
 
 ```bash
-docker run -it --rm --privileged -v $(pwd)/data:/home/dev/data linux-dev-env
+docker run -it --rm --privileged -v $(pwd)/workspace:/home/developer/workspace linux-dev-env
 ```
 - `--privileged`: Gives the container extended privileges
   - Required for QEMU system emulation
@@ -593,7 +596,7 @@ docker run -it --rm --privileged -v $(pwd)/data:/home/dev/data linux-dev-env
 #### Container with Network Access
 
 ```bash
-docker run -it --rm --privileged --network host -v $(pwd)/data:/home/dev/data linux-dev-env
+docker run -it --rm --privileged --network host -v $(pwd)/workspace:/home/developer/workspace linux-dev-env
 ```
 - `--network host`: Uses the host's network stack
   - Container shares the host's network interface
@@ -750,8 +753,8 @@ docker build -t linux-dev-env .
 # 1. Start container
 ./start_container.sh
 
-# 2. Navigate to data directory
-cd /home/dev/data
+# 2. Navigate to workspace directory
+cd /home/developer/workspace
 
 # 3. Build RT-kernel
 ./build_rt_kernel.sh
@@ -771,10 +774,10 @@ cyclictest -t1 -p 80 -n -i 10000 -l 1000
 
 ```bash
 # Enter container
-docker run -it --rm --privileged -v $(pwd)/data:/home/dev/data linux-dev-env
+docker run -it --rm --privileged -v $(pwd)/workspace:/home/developer/workspace linux-dev-env
 
 # Use Makefile for build management
-cd /home/dev/data
+cd /home/developer/workspace
 
 # Check status
 make status
@@ -793,10 +796,10 @@ make install
 
 ```bash
 # Enter container
-docker run -it --rm --privileged -v $(pwd)/data:/home/dev/data linux-dev-env
+docker run -it --rm --privileged -v $(pwd)/workspace:/home/developer/workspace linux-dev-env
 
 # Navigate to exercise directory
-cd data/exercises/cross-compile-c-prog-arm
+cd workspace/exercises/cross-compile-c-prog-arm
 
 # Compile for ARM
 arm-linux-gnueabi-gcc -o hello_arm hello_arm.c
@@ -812,10 +815,10 @@ qemu-arm-static hello_arm
 
 ```bash
 # Enter container
-docker run -it --rm --privileged -v $(pwd)/data:/home/dev/data linux-dev-env
+docker run -it --rm --privileged -v $(pwd)/workspace:/home/developer/workspace linux-dev-env
 
 # Navigate to kernel module directory
-cd data/exercises/hello_kernel
+cd workspace/exercises/hello_kernel
 
 # Build kernel module
 make
@@ -857,11 +860,11 @@ sudo usermod -aG docker $USER
 
 **Problem**: PREEMPT_RT patch fails to apply
 ```bash
-# Solution: Clean kernel source and reapply
-cd /home/dev/data/kernel_build/linux-6.15.6
-make distclean
-rm -f .rt_patch_applied
-cd /home/dev/data
+# Hinweis: Seit Linux 6.12 ist PREEMPT_RT im Mainline-Kernel integriert
+# Kein separater Patch erforderlich!
+
+# Lösung: Verwende die neueste Version des Build-Skripts
+cd /home/developer/workspace
 ./build_rt_kernel.sh
 ```
 
@@ -879,7 +882,7 @@ apt-get update
 apt-get install -y build-essential libncurses5-dev libssl-dev
 
 # Check available disk space
-df -h /home/dev/data
+df -h /home/developer/workspace
 ```
 
 #### 3. RT-Kernel QEMU Issues

@@ -1,10 +1,10 @@
 # Makefile für Linux Kernel 6.15.6 mit PREEMPT_RT für Raspberry Pi 5
 # Verwendung: make <target>
+# Hinweis: Seit Linux 6.12 ist PREEMPT_RT im Mainline-Kernel integriert
 
 KERNEL_VERSION = 6.15.6
-RT_PATCH_VERSION = 6.15.6-rt5
-WORK_DIR = /home/dev/data/kernel_build
-DOWNLOADS_DIR = /home/dev/data/downloads
+WORK_DIR = /home/developer/workspace/kernel_build
+DOWNLOADS_DIR = /home/developer/workspace/downloads
 KERNEL_DIR = $(WORK_DIR)/linux-$(KERNEL_VERSION)
 INSTALL_DIR = $(WORK_DIR)/install
 CROSS_COMPILE = aarch64-linux-gnu-
@@ -14,15 +14,15 @@ JOBS = $(shell nproc)
 # Export für Kernel-Build
 export ARCH CROSS_COMPILE
 
-.PHONY: all clean download patch configure compile install test help
+.PHONY: all clean download extract configure compile install test help
 
-all: download patch configure compile install
+all: download extract configure compile install
 
 help:
 	@echo "Verfügbare Targets:"
 	@echo "  all        - Kompletter Build-Prozess"
-	@echo "  download   - Lade Kernel und RT-Patch herunter"
-	@echo "  patch      - Wende PREEMPT_RT Patch an"
+	@echo "  download   - Lade Kernel herunter"
+	@echo "  extract    - Extrahiere Kernel-Quellcode"
 	@echo "  configure  - Konfiguriere Kernel"
 	@echo "  menuconfig - Interaktive Konfiguration"
 	@echo "  compile    - Kompiliere Kernel"
@@ -32,33 +32,22 @@ help:
 	@echo "  distclean  - Komplette Bereinigung"
 
 download:
-	@echo "=== Lade Kernel und RT-Patch herunter ==="
+	@echo "=== Lade Kernel herunter ==="
 	mkdir -p $(DOWNLOADS_DIR)
 	[ -f $(DOWNLOADS_DIR)/linux-$(KERNEL_VERSION).tar.xz ] || \
 		wget -P $(DOWNLOADS_DIR) "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$(KERNEL_VERSION).tar.xz"
-	[ -f $(DOWNLOADS_DIR)/patch-$(RT_PATCH_VERSION).patch.xz ] || \
-		wget -P $(DOWNLOADS_DIR) "https://cdn.kernel.org/pub/linux/kernel/projects/rt/6.15/patch-$(RT_PATCH_VERSION).patch.xz"
 
 extract: download
 	@echo "=== Extrahiere Kernel-Quellcode ==="
 	mkdir -p $(WORK_DIR)
 	[ -d $(KERNEL_DIR) ] || tar -xf $(DOWNLOADS_DIR)/linux-$(KERNEL_VERSION).tar.xz -C $(WORK_DIR)
 
-patch: extract
-	@echo "=== Wende PREEMPT_RT Patch an ==="
-	cd $(KERNEL_DIR) && \
-	if [ ! -f .rt_patch_applied ]; then \
-		xzcat $(DOWNLOADS_DIR)/patch-$(RT_PATCH_VERSION).patch.xz | patch -p1 && \
-		touch .rt_patch_applied; \
-	fi
-
-configure: patch
+configure: extract
 	@echo "=== Konfiguriere Kernel ==="
 	cd $(KERNEL_DIR) && \
 	if [ ! -f .config ]; then \
 		make defconfig && \
 		scripts/config --enable CONFIG_PREEMPT_RT && \
-		scripts/config --enable CONFIG_PREEMPT_RT_FULL && \
 		scripts/config --disable CONFIG_PREEMPT_VOLUNTARY && \
 		scripts/config --disable CONFIG_PREEMPT && \
 		scripts/config --enable CONFIG_PREEMPT_RCU && \
@@ -67,7 +56,6 @@ configure: patch
 		scripts/config --enable CONFIG_NO_HZ_FULL && \
 		scripts/config --enable CONFIG_RT_MUTEXES && \
 		scripts/config --enable CONFIG_DEBUG_PREEMPT && \
-		scripts/config --enable CONFIG_DEBUG_RT_MUTEXES && \
 		scripts/config --enable CONFIG_ARCH_BCM2835 && \
 		scripts/config --enable CONFIG_GPIOLIB && \
 		scripts/config --enable CONFIG_GPIO_SYSFS && \
@@ -82,7 +70,7 @@ configure: patch
 		make olddefconfig; \
 	fi
 
-menuconfig: patch
+menuconfig: extract
 	@echo "=== Interaktive Kernel-Konfiguration ==="
 	cd $(KERNEL_DIR) && make menuconfig
 
@@ -129,9 +117,11 @@ info:
 status:
 	@echo "=== Status ==="
 	@[ -f $(DOWNLOADS_DIR)/linux-$(KERNEL_VERSION).tar.xz ] && echo "✓ Kernel-Archiv vorhanden" || echo "✗ Kernel-Archiv fehlt"
-	@[ -f $(DOWNLOADS_DIR)/patch-$(RT_PATCH_VERSION).patch.xz ] && echo "✓ RT-Patch vorhanden" || echo "✗ RT-Patch fehlt"
 	@[ -d $(KERNEL_DIR) ] && echo "✓ Kernel-Quellcode extrahiert" || echo "✗ Kernel-Quellcode nicht extrahiert"
-	@[ -f $(KERNEL_DIR)/.rt_patch_applied ] && echo "✓ RT-Patch angewendet" || echo "✗ RT-Patch nicht angewendet"
 	@[ -f $(KERNEL_DIR)/.config ] && echo "✓ Kernel konfiguriert" || echo "✗ Kernel nicht konfiguriert"
 	@[ -f $(KERNEL_DIR)/arch/arm64/boot/Image ] && echo "✓ Kernel kompiliert" || echo "✗ Kernel nicht kompiliert"
 	@[ -d $(INSTALL_DIR) ] && echo "✓ Installation vorhanden" || echo "✗ Installation fehlt"
+	@if [ -f $(KERNEL_DIR)/.config ]; then \
+		echo "RT-Konfiguration:"; \
+		grep -q "CONFIG_PREEMPT_RT=y" $(KERNEL_DIR)/.config && echo "  ✓ PREEMPT_RT aktiviert" || echo "  ✗ PREEMPT_RT nicht aktiviert"; \
+	fi

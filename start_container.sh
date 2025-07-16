@@ -13,7 +13,6 @@ NC='\033[0m' # No Color
 # Script configuration
 CONTAINER_NAME="linux-dev-env"
 IMAGE_NAME="linux-dev-env"
-DATA_DIR="$(pwd)/data"
 WORKSPACE_DIR="$(pwd)"
 
 # Function to print colored output
@@ -57,13 +56,13 @@ check_image() {
     fi
 }
 
-# Function to create data directory if it doesn't exist
-create_data_dir() {
-    if [ ! -d "$DATA_DIR" ]; then
-        print_warning "Data directory '$DATA_DIR' does not exist"
-        print_info "Creating data directory..."
-        mkdir -p "$DATA_DIR"
-        print_success "Created data directory: $DATA_DIR"
+# Function to create workspace directory if it doesn't exist
+create_workspace_dir() {
+    if [ ! -d "$WORKSPACE_DIR/workspace" ]; then
+        print_warning "Workspace directory '$WORKSPACE_DIR/workspace' does not exist"
+        print_info "Creating workspace directory..."
+        mkdir -p "$WORKSPACE_DIR/workspace"
+        print_success "Created workspace directory: $WORKSPACE_DIR/workspace"
     fi
 }
 
@@ -87,11 +86,11 @@ show_usage() {
     echo "  -p, --persistent    Use persistent container name (not --rm)"
     echo "  -d, --detach        Run container in background"
     echo "  -v, --verbose       Show verbose Docker output"
-    echo "  --no-data           Don't mount data directory"
+    echo "  --no-workspace      Don't mount workspace directory"
     echo "  --custom-name NAME  Use custom container name"
     echo ""
     echo "Examples:"
-    echo "  $0                  # Start interactive container with data volume"
+    echo "  $0                  # Start interactive container with workspace volume"
     echo "  $0 -n               # Start with host networking"
     echo "  $0 -p               # Start persistent container"
     echo "  $0 -d               # Start in background"
@@ -102,7 +101,7 @@ NETWORK_MODE="default"
 PERSISTENT=false
 DETACH=false
 VERBOSE=false
-MOUNT_DATA=true
+MOUNT_WORKSPACE=true
 CUSTOM_NAME=""
 
 while [[ $# -gt 0 ]]; do
@@ -127,8 +126,12 @@ while [[ $# -gt 0 ]]; do
             VERBOSE=true
             shift
             ;;
+        --no-workspace)
+            MOUNT_WORKSPACE=false
+            shift
+            ;;
         --no-data)
-            MOUNT_DATA=false
+            MOUNT_WORKSPACE=false
             shift
             ;;
         --custom-name)
@@ -154,7 +157,7 @@ print_info "Starting Linux Docker Development Environment..."
 # Pre-flight checks
 check_docker
 check_image
-create_data_dir
+create_workspace_dir
 
 # Stop existing container if persistent mode
 if [ "$PERSISTENT" = true ]; then
@@ -190,12 +193,9 @@ if [ "$NETWORK_MODE" = "host" ]; then
 fi
 
 # Add volume mounts
-if [ "$MOUNT_DATA" = true ]; then
-    DOCKER_CMD="$DOCKER_CMD -v $DATA_DIR:/home/dev/data"
+if [ "$MOUNT_WORKSPACE" = true ]; then
+    DOCKER_CMD="$DOCKER_CMD -v $WORKSPACE_DIR/workspace:/home/developer/workspace"
 fi
-
-# Add workspace mount
-DOCKER_CMD="$DOCKER_CMD -v $WORKSPACE_DIR:/home/dev/workspace"
 
 # Add image name
 DOCKER_CMD="$DOCKER_CMD $IMAGE_NAME"
@@ -207,8 +207,8 @@ echo "  Container name: $CONTAINER_NAME"
 echo "  Network mode: $NETWORK_MODE"
 echo "  Persistent: $PERSISTENT"
 echo "  Background: $DETACH"
-echo "  Data directory: $DATA_DIR"
-echo "  Workspace directory: $WORKSPACE_DIR"
+echo "  Workspace directory: $WORKSPACE_DIR/workspace"
+echo "  Project directory: $WORKSPACE_DIR"
 echo ""
 
 # Show command if verbose
